@@ -1,0 +1,56 @@
+import noise
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+from matplotlib.colors import LightSource
+from pathlib import Path
+
+# Fixed parameters
+scale = 100.0
+octaves = 6
+persistence = 0.5
+lacunarity = 2.0
+
+output_dir = Path("Outputs/Perlin")
+output_dir.mkdir(exist_ok=True)
+
+def generate_perlin_heightmap(shape, scale, octaves, persistence, lacunarity, seed):
+    world = np.zeros(shape)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            world[i][j] = noise.pnoise2(
+                i / scale, j / scale,
+                octaves=octaves, persistence=persistence, lacunarity=lacunarity,
+                repeatx=shape[0], repeaty=shape[1], base=seed
+            )
+    return world
+
+
+def save_heightmap(heightmap, resolution, seed):
+    normalised = ((heightmap - heightmap.min()) / (heightmap.max() - heightmap.min()) * 255).astype(np.uint8)
+    img = Image.fromarray(normalised)
+    img.save(output_dir / f"Perlin_res{resolution}_seed{seed}.png")
+    np.save(output_dir / f"Perlin_res{resolution}_seed{seed}.npy", heightmap)
+
+def save_heightmap_colored(heightmap, resolution, seed, output_dir):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(heightmap, cmap='terrain', interpolation='bilinear')
+    ax.axis('off')
+    fig.savefig(
+        output_dir / f"Perlin_colored_res{resolution}_seed{seed}.png",
+        bbox_inches='tight', pad_inches=0, dpi=150
+    )
+    plt.close(fig)
+
+def save_heightmap_hillshaded(heightmap, resolution, seed, output_dir):
+    ls = LightSource(azdeg=315, altdeg=45)
+    colored = ls.shade(heightmap, cmap=plt.cm.terrain, vert_exag=1.5, blend_mode='soft')
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(colored)
+    ax.axis('off')
+    fig.savefig(
+        output_dir / f"Perlin_hillshaded_res{resolution}_seed{seed}.png",
+        bbox_inches='tight', pad_inches=0, dpi=150
+    )
+    plt.close(fig)

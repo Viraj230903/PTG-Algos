@@ -1,12 +1,14 @@
 import noise
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
-from matplotlib.colors import LightSource
 from pathlib import Path
+import matplotlib.pyplot as plt
+from scipy.stats import skew, kurtosis
+from scipy.ndimage import minimum_filter
+from matplotlib.colors import LightSource
 
 # Fixed parameters
-scale = 100.0
+scale = 400.0
 octaves = 6
 persistence = 0.5
 lacunarity = 2.0
@@ -25,6 +27,26 @@ def generate_perlin_heightmap(shape, scale, octaves, persistence, lacunarity, se
             )
     return world
 
+def compute_roughness(heightmap):
+    gy, gx = np.gradient(heightmap)
+    slope = np.sqrt(gx**2 + gy**2)
+    return {
+        "roughness_mean": float(slope.mean()),
+        "roughness_std": float(slope.std()),
+    }
+
+def compute_height_stats(heightmap):
+    flat = heightmap.flatten()
+    return {
+        "height_mean": float(flat.mean()),
+        "height_std": float(flat.std()),
+        "height_skew": float(skew(flat)),
+        "height_kurtosis": float(kurtosis(flat)),
+    }
+
+def compute_drainage_proxy(heightmap):
+    local_min = (heightmap == minimum_filter(heightmap, size=3))
+    return {"local_minima_count": int(local_min.sum())}
 
 def save_heightmap(heightmap, resolution, seed):
     normalised = ((heightmap - heightmap.min()) / (heightmap.max() - heightmap.min()) * 255).astype(np.uint8)

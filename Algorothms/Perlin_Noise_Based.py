@@ -1,5 +1,6 @@
 import noise
 import numpy as np
+import time
 from PIL import Image
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -7,10 +8,25 @@ from scipy.stats import skew, kurtosis
 from scipy.ndimage import minimum_filter
 from matplotlib.colors import LightSource
 
-# Fixed parameters
+
+def _retry_on_os_error(func, *args, retries=5, delay=0.5, **kwargs):
+    """Retry a file-writing call a few times.
+
+    Windows Defender / OneDrive intermittently locks freshly-written files
+    for scanning, which surfaces as OSError(errno=22) here instead of the
+    usual "file in use" error. A short retry clears it without failing runs.
+    """
+    for attempt in range(retries):
+        try:
+            return func(*args, **kwargs)
+        except OSError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(delay)
+
 scale = 400.0
-octaves = 6
-persistence = 0.5
+octaves = 4
+persistence = 0.45
 lacunarity = 2.0
 
 output_dir = Path("Outputs/Perlin")
@@ -39,7 +55,7 @@ def compute_height_stats(heightmap):
     flat = heightmap.flatten()
     return {
         "height_mean": float(flat.mean()),
-        "height_std": float(flat.std()),
+        "height_std": float(flat.std()), 
         "height_skew": float(skew(flat)),
         "height_kurtosis": float(kurtosis(flat)),
     }
@@ -51,14 +67,15 @@ def compute_drainage_proxy(heightmap):
 def save_heightmap(heightmap, resolution, seed):
     normalised = ((heightmap - heightmap.min()) / (heightmap.max() - heightmap.min()) * 255).astype(np.uint8)
     img = Image.fromarray(normalised)
-    img.save(output_dir / f"Perlin_res{resolution}_seed{seed}.png")
-    np.save(output_dir / f"Perlin_res{resolution}_seed{seed}.npy", heightmap)
+    _retry_on_os_error(img.save, output_dir / f"Perlin_res{resolution}_seed{seed}.png")
+    _retry_on_os_error(np.save, output_dir / f"Perlin_res{resolution}_seed{seed}.npy", heightmap)
 
 def save_heightmap_colored(heightmap, resolution, seed, output_dir):
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.imshow(heightmap, cmap='terrain', interpolation='bilinear')
     ax.axis('off')
-    fig.savefig(
+    _retry_on_os_error(
+        fig.savefig,
         output_dir / f"Perlin_colored_res{resolution}_seed{seed}.png",
         bbox_inches='tight', pad_inches=0, dpi=150
     )
@@ -67,11 +84,12 @@ def save_heightmap_colored(heightmap, resolution, seed, output_dir):
 def save_heightmap_hillshaded(heightmap, resolution, seed, output_dir):
     ls = LightSource(azdeg=315, altdeg=45)
     colored = ls.shade(heightmap, cmap=plt.cm.terrain, vert_exag=1.5, blend_mode='soft')
-    
+
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.imshow(colored)
     ax.axis('off')
-    fig.savefig(
+    _retry_on_os_error(
+        fig.savefig,
         output_dir / f"Perlin_hillshaded_res{resolution}_seed{seed}.png",
         bbox_inches='tight', pad_inches=0, dpi=150
     )

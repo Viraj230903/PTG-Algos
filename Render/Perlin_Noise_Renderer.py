@@ -3,7 +3,7 @@ import pyvista as pv
 from pathlib import Path
 
 # Load a heightmap you already generated
-heightmap = np.load(Path("Outputs/Perlin") / "Perlin_res1024_seed4.npy")
+heightmap = np.load(Path("Outputs/Hydraulic") / "Erosion_res2048_seed0.npy")
 
 heightmap = heightmap[::2, ::2]
 

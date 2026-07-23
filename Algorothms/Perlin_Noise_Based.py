@@ -18,9 +18,9 @@ def _retry_on_os_error(func, *args, retries=5, delay=0.5, **kwargs):
                 raise
             time.sleep(delay)
 
-scale = 400.0
-octaves = 4
-persistence = 0.45
+scale = 100.0
+octaves = 6
+persistence = 0.5
 lacunarity = 2.0
 
 output_dir = Path("Outputs/Perlin")

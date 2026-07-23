@@ -10,12 +10,6 @@ from matplotlib.colors import LightSource
 
 
 def _retry_on_os_error(func, *args, retries=5, delay=0.5, **kwargs):
-    """Retry a file-writing call a few times.
-
-    Windows Defender / OneDrive intermittently locks freshly-written files
-    for scanning, which surfaces as OSError(errno=22) here instead of the
-    usual "file in use" error. A short retry clears it without failing runs.
-    """
     for attempt in range(retries):
         try:
             return func(*args, **kwargs)

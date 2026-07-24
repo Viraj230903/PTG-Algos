@@ -1,20 +1,23 @@
-"""
-Hydraulic erosion via particle simulation.
-Applies as a post-process to any input heightmap (e.g. Perlin output).
-
-Method: particle-based (droplet) erosion, following the approach popularised by
-Hans Beyer (2015) and Sebastian Lague. Each droplet flows downhill, eroding
-material where it accelerates and depositing material where it slows.
-"""
 import numpy as np
+import time
 from PIL import Image
 from pathlib import Path
 import matplotlib.pyplot as plt
+from scipy.stats import skew, kurtosis
+from scipy.ndimage import minimum_filter
 from matplotlib.colors import LightSource
 
-# ---------------------------------------------------------------------------
-# Parameters (grouped as a dict so they can be logged/varied in experiments)
-# ---------------------------------------------------------------------------
+
+def _retry_on_os_error(func, *args, retries=5, delay=0.5, **kwargs):
+    for attempt in range(retries):
+        try:
+            return func(*args, **kwargs)
+        except OSError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(delay)
+
+
 DEFAULT_PARAMS = {
     "inertia": 0.05,                    # how much droplets resist changing direction (0-1)
     "sediment_capacity_factor": 4.0,    # how much sediment a droplet can carry
@@ -29,16 +32,10 @@ DEFAULT_PARAMS = {
     "initial_water": 1.0,
 }
 
-
 # ---------------------------------------------------------------------------
 # Brush precomputation
 # ---------------------------------------------------------------------------
 def _build_brush(radius):
-    """
-    Precompute a circular brush with weights that decrease with distance.
-    Returns list of (dx, dy, weight) tuples where weights sum to 1.
-    Called once per erosion run, not per droplet.
-    """
     offsets = []
     weight_sum = 0.0
 
@@ -54,14 +51,7 @@ def _build_brush(radius):
     return [(dx, dy, w / weight_sum) for (dx, dy, w) in offsets]
 
 
-# ---------------------------------------------------------------------------
-# Bilinear gradient + height at a continuous (x, y) position
-# ---------------------------------------------------------------------------
 def _compute_gradient_and_height(heightmap, x, y):
-    """
-    Droplets live at floating-point positions between grid cells.
-    We use bilinear interpolation to get the local gradient and height.
-    """
     xi = int(x)
     yi = int(y)
     u = x - xi                      # fractional part in x
@@ -90,10 +80,7 @@ def _compute_gradient_and_height(heightmap, x, y):
 # Simulate one droplet
 # ---------------------------------------------------------------------------
 def _simulate_droplet(heightmap, brush, params, rng):
-    """
-    Simulate a single water droplet flowing over the heightmap.
-    Modifies heightmap in place.
-    """
+
     h, w = heightmap.shape
 
     # Spawn at a random position, leaving a 1-pixel border for gradient sampling
@@ -170,18 +157,6 @@ def _simulate_droplet(heightmap, brush, params, rng):
 # Public entry point
 # ---------------------------------------------------------------------------
 def erode_heightmap(heightmap, n_droplets=50000, params=None, seed=0):
-    """
-    Apply hydraulic erosion to a heightmap.
-
-    Args:
-        heightmap: 2D numpy array of heights. NOT modified in place - a copy is returned.
-        n_droplets: number of droplets to simulate.
-        params: dict of parameters (see DEFAULT_PARAMS). Uses defaults if None.
-        seed: RNG seed for reproducibility.
-
-    Returns:
-        Eroded heightmap as a new numpy array.
-    """
     if params is None:
         params = DEFAULT_PARAMS
 
@@ -198,6 +173,31 @@ def erode_heightmap(heightmap, n_droplets=50000, params=None, seed=0):
 
 
 # ---------------------------------------------------------------------------
+# Stat utilities matching the Perlin module's pattern
+# ---------------------------------------------------------------------------
+def compute_roughness(heightmap):
+    gy, gx = np.gradient(heightmap)
+    slope = np.sqrt(gx**2 + gy**2)
+    return {
+        "roughness_mean": float(slope.mean()),
+        "roughness_std": float(slope.std()),
+    }
+
+def compute_height_stats(heightmap):
+    flat = heightmap.flatten()
+    return {
+        "height_mean": float(flat.mean()),
+        "height_std": float(flat.std()),
+        "height_skew": float(skew(flat)),
+        "height_kurtosis": float(kurtosis(flat)),
+    }
+
+def compute_drainage_proxy(heightmap):
+    local_min = (heightmap == minimum_filter(heightmap, size=3))
+    return {"local_minima_count": int(local_min.sum())}
+
+
+# ---------------------------------------------------------------------------
 # Save utilities matching the Perlin module's pattern
 # ---------------------------------------------------------------------------
 def save_heightmap(heightmap, resolution, seed, output_dir=Path("Outputs/Hydraulic")):
@@ -208,8 +208,8 @@ def save_heightmap(heightmap, resolution, seed, output_dir=Path("Outputs/Hydraul
                   (heightmap.max() - heightmap.min()) * 255).astype(np.uint8)
 
     img = Image.fromarray(normalised)
-    img.save(output_dir / f"Erosion_res{resolution}_seed{seed}.png")
-    np.save(output_dir / f"Erosion_res{resolution}_seed{seed}.npy", heightmap)
+    _retry_on_os_error(img.save, output_dir / f"Erosion_res{resolution}_seed{seed}.png")
+    _retry_on_os_error(np.save, output_dir / f"Erosion_res{resolution}_seed{seed}.npy", heightmap)
 
 
 def save_heightmap_colored(heightmap, resolution, seed, output_dir=Path("Outputs/Hydraulic")):

@@ -110,6 +110,13 @@ def run_erosion_experiment(resolutions=(256, 512, 1024, 2048),
             he.save_heightmap(eroded, resolution, seed)
             he.save_heightmap_colored(eroded, resolution, seed)
             he.save_heightmap_hillshaded(eroded, resolution, seed)
+            roughness_mean = he.compute_roughness(eroded).get("roughness_mean")
+            roughness_std = he.compute_roughness(eroded).get("roughness_std")
+            height_mean = he.compute_height_stats(eroded).get("height_mean")
+            height_std = he.compute_height_stats(eroded).get("height_std")
+            height_skew = he.compute_height_stats(eroded).get("height_skew")
+            height_kurtosis = he.compute_height_stats(eroded).get("height_kurtosis")
+            local_minima_count = he.compute_drainage_proxy(eroded).get("local_minima_count")
             results.append({
                 "algorithm": "erosion",
                 "resolution": resolution,
@@ -117,16 +124,22 @@ def run_erosion_experiment(resolutions=(256, 512, 1024, 2048),
                 "n_droplets": droplets_this_resolution,
                 "time_s": round(elapsed, 4),
                 "peak_memory_mb": round(peak_mb, 2),
+                "roughness_mean": roughness_mean,
+                "roughness_std": roughness_std,
+                "height_mean": height_mean,
+                "height_std": height_std,
+                "height_skew": height_skew,
+                "height_kurtosis": height_kurtosis,
+                "local_minima_count": local_minima_count
             })
 
             print(f"Erosion res={resolution} seed={seed} droplets={droplets_this_resolution}: "
-                  f"{elapsed:.2f}s, {peak_mb:.1f} MB")
+                  f"{elapsed:.2f}s, {peak_mb:.1f} MB, roughness_mean:{roughness_mean}, roughness_std:{roughness_std}, height_mean:{height_mean}, height_std:{height_std}, height_skew:{height_skew}, height_kurtosis:{height_kurtosis}, local_minima_count:{local_minima_count}")
 
     csv_path = output_dir / "erosion_timing.csv"
     with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["algorithm", "resolution", "seed", "n_droplets", "time_s", "peak_memory_mb"]
-        )
+        f, fieldnames=["algorithm", "resolution", "seed", "n_droplets", "time_s", "peak_memory_mb", "roughness_mean", "roughness_std", "height_mean", "height_std", "height_skew", "height_kurtosis", "local_minima_count"]
+
         writer.writeheader()
         writer.writerows(results)
 

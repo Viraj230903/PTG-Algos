@@ -1,0 +1,3 @@
+algorithm,resolution,seed,time_s,peak_memory_mb,status,roughness_mean,roughness_std,height_mean,height_std,height_skew,height_kurtosis,local_minima_count
+wfc,128,0,649.862,9079.68,success,30.953471011992185,18.547442743131988,96.30078125,54.06856323816686,0.005605636764175881,-0.6016817518750699,6539
+wfc,256,0,3649.2068,,failed,,,,,,,

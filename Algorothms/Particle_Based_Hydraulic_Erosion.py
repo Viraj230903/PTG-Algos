@@ -50,7 +50,6 @@ def _build_brush(radius):
     # Normalise so weights sum to 1
     return [(dx, dy, w / weight_sum) for (dx, dy, w) in offsets]
 
-
 def _compute_gradient_and_height(heightmap, x, y):
     xi = int(x)
     yi = int(y)

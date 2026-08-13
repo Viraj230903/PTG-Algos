@@ -1,0 +1,7 @@
+algorithm,spec,n,successes,success_rate,wilson_lo,wilson_hi,statistic_mean,statistic_std,statistic_min,statistic_max,roughness_passing,roughness_failing,mean_gen_time_s
+perlin,spec1_point_elevation,30,1,0.0333,0.0059,0.1667,0.4912,0.1417,0.0508,0.8636,0.0193,0.0168,0.02
+perlin,spec2_region_mean,30,4,0.1333,0.0531,0.2968,0.4809,0.1634,0.2092,0.8058,0.0153,0.0171,0.02
+erosion,spec1_point_elevation,30,1,0.0333,0.0059,0.1667,0.4864,0.1358,0.1438,0.8579,0.019,0.0167,0.987
+erosion,spec2_region_mean,30,4,0.1333,0.0531,0.2968,0.4761,0.1659,0.2075,0.8012,0.0155,0.0169,0.987
+wfc,spec1_point_elevation,10,1,0.1,0.0179,0.4042,0.5,0.2236,0.0,1.0,0.2313,0.2326,380.038
+wfc,spec2_region_mean,10,0,0.0,0.0,0.2775,0.4773,0.0558,0.4017,0.5854,,0.2324,380.038

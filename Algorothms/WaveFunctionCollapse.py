@@ -9,13 +9,13 @@ from matplotlib.colors import LightSource
 
 DEFAULT_PARAMS = {
     "pattern_width": 2,
-    "rotations": 4,
-    "attempt_limit": 10,
-    "output_periodic": True,
-    "input_periodic": True,
+    "rotations": 1,
+    "attempt_limit": 3,
+    "output_periodic": False,
+    "input_periodic": False,
     "loc_heuristic": "entropy",
     "choice_heuristic": "weighted",
-    "backtracking": True,
+    "backtracking": False,
 }
 
 def _compute_gradient_and_height(heightmap, x, y):

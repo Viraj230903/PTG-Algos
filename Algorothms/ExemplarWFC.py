@@ -4,29 +4,18 @@ from pathlib import Path
 
 Path("Outputs").mkdir(exist_ok=True)
 
-# Build a *periodic* (toroidally tileable) exemplar so WFC can legitimately
-# extrapolate it across arbitrarily large output canvases with
-# input_periodic/output_periodic=True. A single centered, non-repeating
-# radial bump (the previous exemplar) has no valid way to keep going once
-# WFC runs off its edges, which is why convergence failed at res>=256.
-size = 32
-i, j = np.meshgrid(np.arange(size), np.arange(size), indexing="ij")
+# 32x32 exemplar with only 3 discrete values, smoother transitions
+exemplar = np.zeros((32, 32), dtype=np.uint8)
+for i in range(32):
+    for j in range(32):
+        d = np.sqrt((i - 16)**2 + (j - 16)**2)
+        if d < 8:
+            exemplar[i, j] = 128   # peak
+        elif d < 16:
+            exemplar[i, j] = 64    # slope
+        else:
+            exemplar[i, j] = 0     # base
 
-# Sums of cosines with integer frequencies over `size` are exactly periodic
-# on a size x size torus, giving a rolling hills pattern that tiles cleanly.
-raw = (
-    np.cos(2 * np.pi * 2 * i / size) * np.cos(2 * np.pi * 2 * j / size)
-    + 0.5 * np.cos(2 * np.pi * 3 * i / size + 1.0) * np.cos(2 * np.pi * 3 * j / size + 1.0)
-)
-raw = (raw - raw.min()) / (raw.max() - raw.min())  # normalise to [0, 1]
-
-# Quantise into the same four height bands as before (peak/upper/lower/base)
-exemplar = np.zeros((size, size), dtype=np.uint8)
-exemplar[raw >= 0.75] = 192   # peak
-exemplar[(raw >= 0.5) & (raw < 0.75)] = 128   # upper slope
-exemplar[(raw >= 0.25) & (raw < 0.5)] = 64    # lower slope
-exemplar[raw < 0.25] = 0      # base
-
-Image.fromarray(exemplar).save("Outputs/wfc_exemplar.png")
-np.save("Outputs/wfc_exemplar.npy", exemplar)
-print(f"Exemplar saved. Shape: {exemplar.shape}, unique values: {sorted(np.unique(exemplar))}")
+Image.fromarray(exemplar).save("Outputs/wfc_exemplar_simple.png")
+np.save("Outputs/wfc_exemplar_simple.npy", exemplar)
+print(f"Simple exemplar saved. Unique values: {sorted(np.unique(exemplar))}")

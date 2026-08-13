@@ -252,7 +252,7 @@ def run_wfc_experiment(
 
 if __name__ == "__main__":
     run_wfc_experiment(
-        resolutions=(128, 256),
+        resolutions=(128, 256, 512, 1024, 2048),
         seeds_per_resolution=1,
     )
 

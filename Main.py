@@ -142,9 +142,7 @@ def run_erosion_experiment(resolutions=(256, 512, 1024, 2048),
     print(f"\nResults written to {csv_path}")
     return results
 
-# ==================================================================
-# WFC experiment runner
-# ==================================================================
+# WFC Experiments
 from Algorothms import WaveFunctionCollapse as wfc
 
 wfc_output_dir = Path("Outputs/WFC")

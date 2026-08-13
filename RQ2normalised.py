@@ -1,33 +1,13 @@
-"""
-Recompute RQ2 visual-quality metrics on normalised heightmaps.
-
-All heightmaps are rescaled to [0,1] before metric computation so that
-measures are comparable across algorithms whose native output ranges differ
-(Perlin/erosion produce floats around [-0.5, 0.5]; WFC produces discrete
-values in [0, 255]).
-
-Generation timings are NOT affected by this script — those remain valid
-from the original experiment CSVs.
-"""
 import numpy as np
 from pathlib import Path
 from scipy.stats import skew, kurtosis
 from scipy.ndimage import minimum_filter
 import csv
 
-
-# ---------------------------------------------------------------------------
-# Normalisation
-# ---------------------------------------------------------------------------
 def normalise(heightmap):
-    """Rescale heightmap to [0, 1]."""
     h_min, h_max = heightmap.min(), heightmap.max()
     return (heightmap - h_min) / (h_max - h_min + 1e-12)
 
-
-# ---------------------------------------------------------------------------
-# Metrics (operating on normalised input)
-# ---------------------------------------------------------------------------
 def compute_roughness(h):
     gy, gx = np.gradient(h)
     slope = np.sqrt(gx**2 + gy**2)
@@ -76,11 +56,6 @@ def compute_all_metrics(h):
     result.update(compute_drainage_proxy(h))
     return result
 
-
-# ---------------------------------------------------------------------------
-# File discovery
-# ---------------------------------------------------------------------------
-# Adjust these paths and filename patterns to match your project layout
 SOURCES = [
     {
         "algorithm": "perlin",

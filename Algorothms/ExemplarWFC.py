@@ -4,7 +4,6 @@ from pathlib import Path
 
 Path("Outputs").mkdir(exist_ok=True)
 
-# 32x32 exemplar with only 3 discrete values, smoother transitions
 exemplar = np.zeros((32, 32), dtype=np.uint8)
 for i in range(32):
     for j in range(32):

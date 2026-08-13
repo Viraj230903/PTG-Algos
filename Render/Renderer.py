@@ -31,5 +31,4 @@ def view_heightmap(npy_path, vert_exag=10, downsample=1, cmap="gist_earth"):
 
 
 if __name__ == "__main__":
-    # Adjust path to whichever file you want to view
     view_heightmap(Path("Outputs/WFC") / "WFC_res256_seed0.npy")

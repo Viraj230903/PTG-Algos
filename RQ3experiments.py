@@ -1,21 +1,3 @@
-"""
-RQ3: Designer controllability via rejection sampling.
-
-For each algorithm, generate N heightmaps at 128^2 with distinct seeds and test
-each against two fixed designer specifications. Records the boolean outcome, the
-underlying continuous statistic, and the RQ2 quality metrics, so success rates
-can be re-derived at other thresholds and quality can be cross-tabbed against
-spec satisfaction without re-running the experiment.
-
-Unequal N by design: WFC's generation cost at 128^2 (~643 s/run) makes N=30
-infeasible. Success rates are reported with Wilson score intervals so the wider
-uncertainty on WFC is visible rather than hidden.
-
-Results append to Outputs/RQ3/rq3_runs.csv after every run. Re-running the
-script skips (algorithm, seed) pairs already present, so an interrupted WFC
-sweep can be resumed.
-"""
-
 import csv
 import math
 import random
@@ -28,10 +10,6 @@ from Algorothms import Perlin_Noise_Based as pnb
 from Algorothms import Particle_Based_Hydraulic_Erosion as pbhe
 from Algorothms import WaveFunctionCollapse as wfc
 
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
 RES = 128
 
 N_RUNS = {
@@ -40,34 +18,24 @@ N_RUNS = {
     "wfc": 10,
 }
 
-# !! SET THIS TO THE SAME SCALE YOU USED FOR RQ1/RQ2 !!
-# If RQ1 varied scale with resolution, mirror that rule here instead of using a
-# constant, otherwise the RQ3 maps are not comparable to your other results.
 PERLIN_SCALE = 100.0
 PERLIN_OCTAVES = 6
 PERLIN_PERSISTENCE = 0.5
 PERLIN_LACUNARITY = 2.0
 
-# Droplet count kept below the ~0.2 droplets/cell stability ceiling identified in
-# the erosion diagnostic.
 EROSION_DENSITY = 0.15
 EROSION_DROPLETS = int(EROSION_DENSITY * RES * RES)
 
-# WFC exemplar. Swap to wfc_exemplar.npy if the simple one is not what your
-# RQ1/RQ2 runs used.
 EXEMPLAR_PATH = Path("Outputs/wfc_exemplar_simple.npy")
 
-# Spec thresholds
-SPEC1_THRESHOLD = 0.8   # centre elevation must reach >= 80% of range
-SPEC2_THRESHOLD = 0.3   # top-left quadrant mean must fall below 30% of range
+SPEC1_THRESHOLD = 0.8  
+SPEC2_THRESHOLD = 0.3  
 
 OUTPUT_DIR = Path("Outputs/RQ3")
 RUNS_CSV = OUTPUT_DIR / "rq3_runs.csv"
 SUMMARY_CSV = OUTPUT_DIR / "rq3_summary.csv"
 SAVE_MAPS = True
 
-# Abort an algorithm's loop after this many consecutive failures, so the script
-# never grinds through 30 seeds repeating one signature error.
 MAX_CONSECUTIVE_FAILURES = 2
 
 FIELDNAMES = [
@@ -85,12 +53,6 @@ FIELDNAMES = [
     "drainage_proxy",
 ]
 
-
-# ---------------------------------------------------------------------------
-# Generation adapters
-#
-# Each returns (raw_heightmap, elapsed_seconds). Timing covers generation only.
-# ---------------------------------------------------------------------------
 def generate_perlin(seed, res):
     t0 = time.perf_counter()
     hm = pnb.generate_perlin_heightmap(
@@ -105,9 +67,7 @@ def generate_perlin(seed, res):
 
 
 def generate_erosion(seed, res):
-    """Erosion is applied to a Perlin base with the same seed, so the erosion and
-    Perlin rows at a given seed are directly comparable: any difference in spec
-    satisfaction is attributable to the erosion pass alone."""
+
     t0 = time.perf_counter()
     base = pnb.generate_perlin_heightmap(
         shape=(res, res),
@@ -146,7 +106,6 @@ def _load_exemplar():
 
 def generate_wfc(seed, res):
     exemplar = _load_exemplar()
-    # Seed the global RNGs as well, in case the WFC port ignores its seed argument.
     random.seed(seed)
     np.random.seed(seed)
     t0 = time.perf_counter()
@@ -164,17 +123,9 @@ GENERATORS = {
     "wfc": generate_wfc,
 }
 
-# The metric functions are duplicated across all three modules; use one
-# consistently so the numbers are guaranteed comparable.
 METRICS_MODULE = pnb
 
-
-# ---------------------------------------------------------------------------
-# Normalisation, specifications, metrics
-# ---------------------------------------------------------------------------
 def normalise(hm):
-    """Min-max normalise to [0, 1]. Matches the RQ2 metric pipeline so thresholds
-    mean the same thing across algorithms with different raw ranges."""
     lo, hi = float(np.nanmin(hm)), float(np.nanmax(hm))
     if not np.isfinite(lo) or not np.isfinite(hi) or hi - lo == 0.0:
         return None
@@ -182,20 +133,16 @@ def normalise(hm):
 
 
 def spec1_centre_elevation(hm_norm):
-    """'Put a mountain here.' Normalised elevation at the centre pixel."""
     r, c = hm_norm.shape[0] // 2, hm_norm.shape[1] // 2
     return float(hm_norm[r, c])
 
 
 def spec2_quadrant_mean(hm_norm):
-    """'Keep this area low ground.' Mean of the top-left quadrant."""
     r, c = hm_norm.shape[0] // 2, hm_norm.shape[1] // 2
     return float(np.mean(hm_norm[:r, :c]))
 
 
 def safe_scalar(fn, hm):
-    """Call a metric function and coerce the result to float. Returns nan on
-    failure so one bad metric never costs an expensive WFC run."""
     try:
         val = fn(hm)
     except Exception as exc:
@@ -210,14 +157,7 @@ def safe_scalar(fn, hm):
     except (TypeError, ValueError):
         return float("nan")
 
-
-# ---------------------------------------------------------------------------
-# Statistics
-# ---------------------------------------------------------------------------
 def wilson_interval(successes, n, z=1.96):
-    """Wilson score interval for a binomial proportion. Behaves sensibly at 0 and
-    1 successes, unlike the normal approximation -- which matters because several
-    cells here are expected to be 0/10 or 30/30."""
     if n == 0:
         return (float("nan"), float("nan"))
     p = successes / n
@@ -226,10 +166,6 @@ def wilson_interval(successes, n, z=1.96):
     half = (z / denom) * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
     return (max(0.0, centre - half), min(1.0, centre + half))
 
-
-# ---------------------------------------------------------------------------
-# CSV persistence with resume support
-# ---------------------------------------------------------------------------
 def load_completed():
     if not RUNS_CSV.exists():
         return set()
@@ -248,16 +184,10 @@ def append_row(row):
             writer.writeheader()
         writer.writerow(row)
 
-
-# ---------------------------------------------------------------------------
-# Main sweep
-# ---------------------------------------------------------------------------
 def run_sweep():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     completed = load_completed()
 
-    # Cheapest first, so a crash during WFC still leaves complete Perlin and
-    # erosion datasets on disk.
     for algo in ("perlin", "erosion", "wfc"):
         n = N_RUNS[algo]
         generate = GENERATORS[algo]
@@ -326,10 +256,6 @@ def run_sweep():
                 flush=True,
             )
 
-
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
 def summarise():
     if not RUNS_CSV.exists():
         print("No runs recorded yet.")
@@ -356,7 +282,6 @@ def summarise():
             lo, hi = wilson_interval(successes, n)
             values = [float(r[value_key]) for r in subset]
 
-            # Quality cross-tab: roughness of satisfying vs non-satisfying maps.
             passing = [float(r["roughness"]) for r in subset if int(r[pass_key]) == 1]
             failing = [float(r["roughness"]) for r in subset if int(r[pass_key]) == 0]
 

@@ -1,4 +1,3 @@
-"""Compare Perlin noise vs hydraulic erosion timing/memory across resolutions."""
 from pathlib import Path
 import csv
 from collections import defaultdict
@@ -13,8 +12,8 @@ EROSION_CSV = ROOT / "Outputs" / "Hydraulic" / "erosion_timing.csv"
 OUT_DIR = ROOT / "Outputs" / "Analysis"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-COLOR_PERLIN = "#2a78d6"   # categorical slot 1 (blue)
-COLOR_EROSION = "#eb6834"  # categorical slot 2 (orange)
+COLOR_PERLIN = "#2a78d6"   
+COLOR_EROSION = "#eb6834"  
 INK = "#0b0b0b"
 SECONDARY_INK = "#52514e"
 MUTED = "#898781"
@@ -91,7 +90,6 @@ def main():
     fig.savefig(out_path, dpi=200, facecolor=fig.get_facecolor())
     print(f"Saved {out_path}")
 
-    # Single time-only chart, larger, for standalone use
     fig2, ax2 = plt.subplots(figsize=(6.5, 5), facecolor="#fcfcfb")
     plot_metric(ax2, p_res, p_time, p_time_std, e_time, e_time_std,
                 "Runtime (s, log scale)")

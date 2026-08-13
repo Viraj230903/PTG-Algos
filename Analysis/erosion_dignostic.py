@@ -1,10 +1,3 @@
-"""
-Diagnostic: does erosion's local-minima increase disappear at higher droplet density?
-
-Takes a single Perlin heightmap at 512x512 and applies erosion at four droplet
-densities, recording normalised metrics after each. If the local-minima increase
-is caused by insufficient droplet coverage, higher densities should reverse it.
-"""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -22,12 +15,8 @@ RESOLUTION = 512
 SEED = 0
 PERLIN_PATH = Path("Outputs/Perlin") / f"Perlin_res{RESOLUTION}_seed{SEED}.npy"
 
-# Baseline for 512 in the main experiment was 12,500 droplets.
-# Test 1x, 4x, 16x, 32x that density.
 DROPLET_COUNTS = [12500, 50000, 200000, 400000]
 
-# Also vary lifetime at the highest density to test whether droplets are
-# terminating before they can carve connected channels.
 LIFETIME_VARIANTS = [(200000, 30), (200000, 60)]
 
 
@@ -62,7 +51,6 @@ def main():
 
     results = []
 
-    # Baseline: un-eroded Perlin
     m = compute_metrics(base)
     results.append({
         "condition": "perlin_baseline",
@@ -75,7 +63,6 @@ def main():
           f"({m['local_minima_density']*100:5.2f}%)  "
           f"rough_std={m['roughness_std']:.5f}  skew={m['height_skew']:+.4f}")
 
-    # Density sweep at default lifetime
     for n in DROPLET_COUNTS:
         start = time.perf_counter()
         eroded = pbhe.erode_heightmap(base, n_droplets=n, seed=SEED)
@@ -97,11 +84,9 @@ def main():
               f"rough_std={m['roughness_std']:.5f}  skew={m['height_skew']:+.4f}  "
               f"[{delta:+.1f}% vs base, {elapsed:.0f}s]")
 
-    # Lifetime variant — requires erode_heightmap to accept a params dict.
-    # If your signature differs, comment this block out.
     for n, lifetime in LIFETIME_VARIANTS:
         if lifetime == 30:
-            continue  # already covered above
+            continue  
         params = dict(pbhe.DEFAULT_PARAMS)
         params["max_lifetime"] = lifetime
 

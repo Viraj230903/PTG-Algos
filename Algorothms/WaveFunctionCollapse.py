@@ -24,17 +24,14 @@ def _compute_gradient_and_height(heightmap, x, y):
     u = x - xi                      
     v = y - yi                      
 
-    # Four surrounding heights
     h_nw = heightmap[yi, xi]
     h_ne = heightmap[yi, xi + 1]
     h_sw = heightmap[yi + 1, xi]
     h_se = heightmap[yi + 1, xi + 1]
 
-    # Gradient by bilinear interpolation
     grad_x = (h_ne - h_nw) * (1 - v) + (h_se - h_sw) * v
     grad_y = (h_sw - h_nw) * (1 - u) + (h_se - h_ne) * u
-
-    # Interpolated height at (x, y)
+    
     height = (h_nw * (1 - u) * (1 - v)
              + h_ne * u * (1 - v)
              + h_sw * (1 - u) * v

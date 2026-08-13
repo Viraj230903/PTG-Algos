@@ -6,7 +6,6 @@ def count_local_minima(heightmap):
     local_min = (heightmap == minimum_filter(heightmap, size=3))
     return int(local_min.sum())
 
-# Adjust these paths if your files are elsewhere
 perlin_counts = []
 erosion_counts = []
 for seed in range(5):

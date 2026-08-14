@@ -2,7 +2,7 @@ import numpy as np
 import pyvista as pv
 from pathlib import Path
 
-heightmap = np.load(Path("Outputs/WFC") / "WFC_res256_seed0.npy")
+heightmap = np.load(Path("Outputs/WFC") / "WFC_res128_seed0.npy")
 heightmap = heightmap[::2, ::2]
 
 lo, hi = heightmap.min(), heightmap.max()
